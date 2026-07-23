@@ -222,11 +222,6 @@ class dados_ips:
         pares_long = pd.concat([pares_22_23, pares_23_24], ignore_index=True)
 
         print("Pares longitudinais:", len(pares_long))
-
-        display(
-            pares_long[["IPS_atual", "Delta_IDA", "Delta_IEG"]]
-            .corr(method="spearman")
-        )
         pares_long["Faixa_IPS"] = pd.qcut(
             pares_long["IPS_atual"],
             q=4,
