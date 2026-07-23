@@ -3,8 +3,13 @@ import sys
 import os
 import pandas as pd
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+
 from api import graficos as graf
-dados = pd.read_csv('api/dados_tratados.csv')
+caminho_csv = os.path.join(BASE_DIR, "api", "dados_tratados.csv")
+dados = pd.read_csv(caminho_csv)
 st.set_page_config(page_title="Datathon")
 
 st.title(":blue[DATA]THON",text_alignment="center")
