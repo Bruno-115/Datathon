@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
+import os
 
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -351,14 +352,25 @@ class dados_Muldidimensao:
         )
         return plt.gcf(),combinacoes
 #Graficos Pergunta 9
+# Graficos Pergunta 9
 class dados_risco:
     @staticmethod
+    def _obter_caminho_dados(nome_arquivo):
+        # Localiza a pasta do próprio arquivo graficos.py
+        diretorio_atual = os.path.dirname(os.path.abspath(__file__))
+        # Monta o caminho dinâmico para a pasta data/
+        return os.path.join(diretorio_atual, "data", nome_arquivo)
+
+    @staticmethod
     def comp_model():
-        df = pd.read_csv("./api/data/comparacao_modelos.csv")
+        caminho = dados_risco._obter_caminho_dados("comparacao_modelos.csv")
+        df = pd.read_csv(caminho)
         return df
+
     @staticmethod
     def imp_var():
-        importancia = pd.read_csv("./api/data/importancia_variaveis.csv")
+        caminho = dados_risco._obter_caminho_dados("importancia_variaveis.csv")
+        importancia = pd.read_csv(caminho)
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.barplot(
             data=importancia.head(15),
@@ -371,9 +383,11 @@ class dados_risco:
         ax.set_ylabel("")
         fig.tight_layout()
         return fig
+
     @staticmethod
     def st_prior():
-        df = pd.read_csv("./api/data/alunos_priorizados_teste.csv")
+        caminho = dados_risco._obter_caminho_dados("alunos_priorizados_teste.csv")
+        df = pd.read_csv(caminho)
         return df.head(50)
 #Graficos Pergunta 10
 class dados_efetivo:
