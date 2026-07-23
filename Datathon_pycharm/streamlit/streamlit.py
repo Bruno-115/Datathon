@@ -2,7 +2,6 @@ import streamlit as st
 import sys
 import os
 import pandas as pd
-#!pip install streamlit[charts]
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from api import graficos as graf
 dados = pd.read_csv('api/dados_tratados.csv')
