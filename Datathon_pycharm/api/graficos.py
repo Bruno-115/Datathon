@@ -35,7 +35,6 @@ class dados_ian:
         dados["Nivel_IAN"],
         normalize="index"
         ).mul(100)
-        display(ian_ano.round(2))
         ian_contagem = pd.crosstab(dados["Ano"], dados["Nivel_IAN"])
         return ian_contagem
 
