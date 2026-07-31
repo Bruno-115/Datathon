@@ -1,5 +1,7 @@
+import os
 import streamlit as st
-import requests
+import pandas as pd
+import joblib
 
 # Dicionários de mapeamento para as variáveis do dataset PEDE
 opcoes_genero = {
@@ -95,49 +97,75 @@ IPP = st.number_input("IPP", min_value=0.0, max_value=10.0, value=5.0, step=0.1)
 
 st.markdown("---")
 
+# ==========================================
+# LÓGICA DE CARREGAMENTO DO MODELO DIRETO
+# ==========================================
+
+# Busca o arquivo modelo_risco_defasagem.joblib na pasta api/
+# Baseado na estrutura: Datathon_pycharm/streamlit/pages/arquivo.py
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+CAMINHO_MODELO = os.path.join(ROOT_DIR, "api", "modelo_risco_defasagem.joblib")
+
+# Fallback: Caso a estrutura mude, tenta achar na mesma pasta do script
+if not os.path.exists(CAMINHO_MODELO):
+    CAMINHO_MODELO = "modelo_risco_defasagem.joblib"
+
+@st.cache_resource # Faz o Streamlit carregar o modelo apenas uma vez para não ficar lento
+def carregar_modelo():
+    try:
+        return joblib.load(CAMINHO_MODELO)
+    except Exception as e:
+        return None
+
+pipeline = carregar_modelo()
+
 # Botão para realizar a predição
 if st.button("🔮 Calcular Predição", use_container_width=True):
 
-    input_data = {
-        "Ano_Referencia": int(Ano_Referencia),
-        "Idade": float(Idade),
-        "Ano_Ingresso": int(Ano_Ingresso),
-        "Fase": Fase,
-        "Gênero": Genero,
-        "Instituicao": Instituicao,
-        "Pedra_Atual": Pedra_Atual,
-        "INDE": float(INDE),
-        "IAN": float(IAN),
-        "IDA": float(IDA),
-        "IEG": float(IEG),
-        "IAA": float(IAA),
-        "IPS": float(IPS),
-        "IPP": float(IPP) if IPP is not None else None,
-        "IPV": float(IPV),
-        "Matematica": float(Matematica),
-        "Portugues": float(Portugues),
-        "Ingles": float(Ingles) if Ingles is not None else None
-    }
+    if pipeline is None:
+        st.error(f"❌ Modelo não encontrado! O arquivo não está em: {CAMINHO_MODELO}")
+    else:
+        # 1. Monta o dicionário de dados
+        input_data = {
+            "Ano_Referencia": int(Ano_Referencia),
+            "Idade": float(Idade),
+            "Ano_Ingresso": int(Ano_Ingresso),
+            "Fase": Fase,
+            "Gênero": Genero,
+            "Instituicao": Instituicao,
+            "Pedra_Atual": Pedra_Atual,
+            "INDE": float(INDE),
+            "IAN": float(IAN),
+            "IDA": float(IDA),
+            "IEG": float(IEG),
+            "IAA": float(IAA),
+            "IPS": float(IPS),
+            "IPP": float(IPP) if IPP is not None else None,
+            "IPV": float(IPV),
+            "Matematica": float(Matematica),
+            "Portugues": float(Portugues),
+            "Ingles": float(Ingles) if Ingles is not None else None
+        }
 
-    try:
-        response = requests.post(
-            "http://127.0.0.1:5000/predict",
-            json=input_data,
-            timeout=30
-        )
+        # 2. Converte para DataFrame
+        features = pd.DataFrame([input_data])
 
-        if response.status_code == 200:
-            result = response.json()
-            predicao = result['data']['prediction']
+        try:
+            # 3. Executa a predição localmente
+            if hasattr(pipeline, "predict_proba"):
+                proba = pipeline.predict_proba(features)[:, 1]
+                predicao = int(proba[0] >= 0.5) # Limiar padrão
+            else:
+                predicao = int(pipeline.predict(features)[0])
 
             st.markdown("### 🎯 Resultado da Análise:")
 
-            # Tratamento visual do resultado
-            if predicao == "1":
+            # 4. Tratamento visual do resultado
+            if predicao == 1:
                 st.error("⚠️ **ALERTA: ESTUDANTE EM RISCO DE DEFASAGEM**")
                 st.write(
                     "O modelo prevê que este aluno tem alta probabilidade de cursar uma fase abaixo da ideal para a sua idade no próximo ano. Recomenda-se acompanhamento pedagógico e psicossocial prioritário.")
-            elif predicao == "0":
+            elif predicao == 0:
                 st.success("✅ **PROGRESSÃO ADEQUADA: SEM RISCO DE DEFASAGEM**")
                 st.write(
                     "O modelo prevê que este aluno continuará progredindo normalmente de acordo com a sua fase ideal.")
@@ -145,14 +173,5 @@ if st.button("🔮 Calcular Predição", use_container_width=True):
             else:
                 st.warning(f"Predição retornou um valor não esperado: {predicao}")
 
-        else:
-            st.error(f"Erro da API ({response.status_code}): {response.text}")
-
-    except requests.exceptions.ConnectionError:
-        st.error("❌ Não foi possível conectar à API. Verifique se o servidor Flask está rodando no terminal.")
-
-    except requests.exceptions.Timeout:
-        st.error("⏰ A API demorou muito para responder. Tente novamente.")
-
-    except Exception as e:
-        st.error(f"⚠️ Erro inesperado: {e}")
+        except Exception as e:
+            st.error(f"⚠️ Erro inesperado ao rodar o modelo: {e}")
